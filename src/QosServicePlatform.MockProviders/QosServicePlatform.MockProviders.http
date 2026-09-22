@@ -1,0 +1,6 @@
+@QosServicePlatform.MockProviders_HostAddress = http://localhost:5228
+
+GET {{QosServicePlatform.MockProviders_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

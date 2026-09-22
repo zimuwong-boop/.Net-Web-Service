@@ -1,0 +1,26 @@
+services:
+  providers:
+    build:
+      context: .
+      dockerfile: src/QosServicePlatform.MockProviders/Dockerfile
+    ports:
+      - "5201:8080"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: src/QosServicePlatform.Web/Dockerfile
+    environment:
+      PROVIDER_BASE_URL: http://providers:8080
+    ports:
+      - "5200:8080"
+    volumes:
+      - qos-history:/app/App_Data
+    depends_on:
+      - providers
+    restart: unless-stopped
+
+volumes:
+  qos-history:
+

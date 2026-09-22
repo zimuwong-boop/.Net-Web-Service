@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QosServicePlatform.Application/QosServicePlatform.Application.csproj" />
+    <Project Path="src/QosServicePlatform.Domain/QosServicePlatform.Domain.csproj" />
+    <Project Path="src/QosServicePlatform.Infrastructure/QosServicePlatform.Infrastructure.csproj" />
+    <Project Path="src/QosServicePlatform.MockProviders/QosServicePlatform.MockProviders.csproj" />
+    <Project Path="src/QosServicePlatform.Web/QosServicePlatform.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QosServicePlatform.IntegrationTests/QosServicePlatform.IntegrationTests.csproj" />
+    <Project Path="tests/QosServicePlatform.UnitTests/QosServicePlatform.UnitTests.csproj" />
+  </Folder>
+</Solution>

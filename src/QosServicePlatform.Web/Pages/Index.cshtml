@@ -1,0 +1,159 @@
+@page
+@model IndexModel
+@using QosServicePlatform.Domain
+@{
+    ViewData["Title"] = "QoS 动态调用控制台";
+}
+
+<section class="hero">
+    <p class="eyebrow">.NET 10 · Dynamic Web Service Selection</p>
+    <h1>QoS 动态服务调用平台</h1>
+    <p>一次选择 1～4 类服务，系统根据可用性、成功率、速度、成本与负载实时评分并动态绑定提供者。</p>
+</section>
+
+<form method="post" class="control-panel">
+    <div asp-validation-summary="All" class="validation"></div>
+
+    <section class="panel">
+        <div class="section-heading"><span>01</span><h2>选择服务</h2></div>
+        <div class="service-grid">
+            @foreach (var category in Model.Categories)
+            {
+                <label class="service-option">
+                    <input type="checkbox" name="SelectedCategories" value="@category.Key"
+                           checked="@(Model.SelectedCategories.Contains(category.Key))" />
+                    <span class="service-check">✓</span>
+                    <strong>@category.Value</strong>
+                    <small>@category.Key</small>
+                </label>
+            }
+        </div>
+        <div class="input-grid">
+            <label>天气城市<input asp-for="City" /></label>
+            <label>物流起点<input asp-for="Origin" /></label>
+            <label>物流终点<input asp-for="Destination" /></label>
+            <label>换算金额（CNY）<input asp-for="Amount" /></label>
+            <label class="wide">通知收件人<input asp-for="Recipient" /></label>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="section-heading"><span>02</span><h2>QoS 权重</h2><em>总和需为 100%</em></div>
+        <div class="weight-grid">
+            <label>可用性 %<input asp-for="AvailabilityWeight" type="number" min="0" max="100" step="1" /></label>
+            <label>成功率 %<input asp-for="SuccessWeight" type="number" min="0" max="100" step="1" /></label>
+            <label>响应速度 %<input asp-for="ResponseWeight" type="number" min="0" max="100" step="1" /></label>
+            <label>调用成本 %<input asp-for="CostWeight" type="number" min="0" max="100" step="1" /></label>
+            <label>当前负载 %<input asp-for="LoadWeight" type="number" min="0" max="100" step="1" /></label>
+        </div>
+    </section>
+
+    <button class="run-button" type="submit"><span>执行动态调用</span><b>→</b></button>
+</form>
+
+@if (Model.Result is not null)
+{
+    <section class="results">
+        <div class="result-summary">
+            <div><small>关联 ID</small><code>@Model.Result.CorrelationId</code></div>
+            <div><small>并行总耗时</small><strong>@Model.Result.Elapsed.TotalMilliseconds.ToString("0") ms</strong></div>
+            <div><small>成功类别</small><strong>@Model.Result.Results.Count(x => x.Success) / @Model.Result.Results.Count</strong></div>
+        </div>
+
+        @foreach (var item in Model.Result.Results)
+        {
+            var categoryName = Model.Categories.GetValueOrDefault(item.CategoryId, item.CategoryId);
+            <article class="result-card @(item.Success ? "success" : "failure")">
+                <header>
+                    <div><small>@item.CategoryId</small><h2>@categoryName</h2></div>
+                    <span class="status">@(item.Success ? "调用成功" : "调用失败")</span>
+                </header>
+                <div class="result-columns">
+                    <div>
+                        <h3>候选排名</h3>
+                        <ol class="ranking">
+                            @foreach (var score in item.Ranking)
+                            {
+                                <li class="@(score.Endpoint.Id == item.EndpointId ? "chosen" : null)">
+                                    <span class="rank">#@score.Rank</span>
+                                    <div><strong>@score.Endpoint.Name</strong><small>成本 ¥@score.Endpoint.CostPerCall.ToString("0.00") / 次</small></div>
+                                    <b>@score.Total.ToString("0.000")</b>
+                                </li>
+                            }
+                        </ol>
+                    </div>
+                    <div>
+                        <h3>调用尝试</h3>
+                        @foreach (var attempt in item.Attempts)
+                        {
+                            <div class="attempt">
+                                <span class="attempt-dot"></span>
+                                <strong>@attempt.EndpointName</strong>
+                                <small>#@attempt.Rank · @attempt.Duration.TotalMilliseconds.ToString("0") ms · @attempt.Outcome</small>
+                            </div>
+                        }
+                        @if (item.Data is not null)
+                        {
+                            <h3>服务响应</h3>
+                            <pre>@item.Data</pre>
+                        }
+                        @if (item.Error is not null)
+                        {
+                            <p class="error-message">@item.Error</p>
+                        }
+                    </div>
+                </div>
+            </article>
+        }
+    </section>
+}
+
+<section class="operations-grid">
+    <article class="panel">
+        <div class="section-heading"><span>03</span><h2>最近调用</h2></div>
+        @if (Model.History.Count == 0)
+        {
+            <p class="empty-state">尚无持久化调用记录。</p>
+        }
+        else
+        {
+            <div class="history-list">
+                @foreach (var entry in Model.History)
+                {
+                    <div class="history-row">
+                        <time>@entry.CompletedAt.ToString("MM-dd HH:mm:ss")</time>
+                        <div><strong>@string.Join(" / ", entry.Categories)</strong><small>@entry.SuccessCount / @entry.ServiceCount 成功</small></div>
+                        <b>@entry.ElapsedMilliseconds.ToString("0") ms</b>
+                    </div>
+                }
+            </div>
+        }
+    </article>
+    <article class="panel">
+        <div class="section-heading"><span>04</span><h2>熔断状态</h2></div>
+        @if (Model.CircuitStatuses.Count == 0)
+        {
+            <p class="empty-state">所有候选服务均处于正常状态。</p>
+        }
+        else
+        {
+            @foreach (var circuit in Model.CircuitStatuses)
+            {
+                <div class="circuit-row">
+                    <span class="health-dot @(circuit.IsOpen ? "open" : null)"></span>
+                    <div><strong>@circuit.EndpointName</strong><small>连续失败 @circuit.ConsecutiveFailures 次</small></div>
+                    <b>@(circuit.IsOpen ? "已熔断" : "正常")</b>
+                </div>
+            }
+        }
+        <div class="section-heading health-heading"><span>05</span><h2>后台健康检查</h2></div>
+        @foreach (var health in Model.HealthStatuses)
+        {
+            <div class="circuit-row">
+                <span class="health-dot @(!health.IsHealthy ? "open" : null)"></span>
+                <div><strong>@health.EndpointName</strong><small>@(health.CheckedAt == DateTimeOffset.MinValue ? "等待首次检查" : health.CheckedAt.ToString("HH:mm:ss 检查"))</small></div>
+                <b>@(health.IsHealthy ? "健康" : "离线")</b>
+            </div>
+        }
+    </article>
+</section>

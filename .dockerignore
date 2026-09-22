@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/.artifacts
+.git
+.dotnet-cli
+.nuget
+.appdata
+**/App_Data
+debug.log
+
